@@ -565,13 +565,6 @@
 }
 
 
-- (void)cancel
-{
-	if(delegate && [delegate conformsToProtocol:@protocol(MBProgressHUDDelegate)] && [delegate respondsToSelector:@selector(hudDidCancel:)])
-		[delegate performSelector:@selector(hudDidCancel:) withObject:self];
-}
-
-
 #pragma mark -
 #pragma mark Fade in and Fade out
 
