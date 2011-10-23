@@ -48,6 +48,7 @@ typedef enum {
     MBProgressHUDAnimationZoom
 } MBProgressHUDAnimation;
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 /** 
@@ -116,6 +117,8 @@ typedef enum {
 	UIView *customView;
 	
 	CGAffineTransform rotationTransform;
+	
+	UIView *additionalView;
 }
 
 /**
@@ -307,6 +310,12 @@ typedef enum {
  */
 - (void)hide:(BOOL)animated;
 
+@property (retain) UIView *additionalView;
+
+@property (assign) float width;
+@property (assign) float height;
+
+
 /** 
  * Hide the HUD after a delay. This still calls the hudWasHidden delegate. This is the counterpart of the hide: method. Use it to
  * hide the HUD when your task completes.
@@ -350,6 +359,7 @@ typedef enum {
  */
 - (void)hudWasHidden __attribute__ ((deprecated)); 
 
+- (void)hudDidCancel:(MBProgressHUD *)hud;;
 @end
 
 /////////////////////////////////////////////////////////////////////////////////////////////

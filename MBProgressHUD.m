@@ -27,8 +27,6 @@
 - (void)cleanUp;
 
 @property (retain) UIView *indicator;
-@property (assign) float width;
-@property (assign) float height;
 @property (retain) NSTimer *graceTimer;
 @property (retain) NSTimer *minShowTimer;
 @property (retain) NSDate *showStarted;
@@ -68,6 +66,9 @@
 @synthesize customView;
 
 @synthesize showStarted;
+
+@synthesize additionalView;
+
 
 - (void)setMode:(MBProgressHUDMode)newMode {
     // Dont change mode if it wasn't actually changed to prevent flickering
@@ -123,6 +124,7 @@
 - (NSString *)detailsLabelText {
 	return detailsLabelText;
 }
+
 
 - (void)setProgress:(float)newProgress {
     progress = newProgress;
@@ -297,119 +299,146 @@
 	[minShowTimer release];
 	[showStarted release];
 	[customView release];
+	
+	self.additionalView=nil;
+	
     [super dealloc];
 }
 
 #pragma mark -
 #pragma mark Layout
 
-- (void)layoutSubviews {
-    CGRect frame = self.bounds;
+- (void)layoutSubviews
+{
+	CGRect frame = self.bounds;
 	
-    // Compute HUD dimensions based on indicator size (add margin to HUD border)
-    CGRect indFrame = indicator.bounds;
-    self.width = indFrame.size.width + 2 * margin;
-    self.height = indFrame.size.height + 2 * margin;
+	// Compute HUD dimensions based on indicator size (add margin to HUD border)
+	CGRect indFrame = indicator.bounds;
+	self.width = indFrame.size.width + 2 * margin;
+	self.height = indFrame.size.height + 2 * margin;
 	
     // Position the indicator
     indFrame.origin.x = floorf((frame.size.width - indFrame.size.width) / 2) + self.xOffset;
     indFrame.origin.y = floorf((frame.size.height - indFrame.size.height) / 2) + self.yOffset;
     indicator.frame = indFrame;
 	
-    // Add label if label text was set
-    if (nil != self.labelText) {
-        // Get size of label text
-        CGSize dims = [self.labelText sizeWithFont:self.labelFont];
+	CGRect lFrame=CGRectZero;
+	
+	// Add label if label text was set
+	if (self.labelText)
+	{
+		// Get size of label text
+		CGSize dims=[self.labelText sizeWithFont:self.labelFont];
 		
-        // Compute label dimensions based on font metrics if size is larger than max then clip the label width
-        float lHeight = dims.height;
-        float lWidth;
-        if (dims.width <= (frame.size.width - 2 * margin)) {
-            lWidth = dims.width;
-        }
-        else {
-            lWidth = frame.size.width - 4 * margin;
-        }
+		// Compute label dimensions based on font metrics if size is larger than max then clip the label width
+		float lHeight=dims.height;
+		float lWidth=(dims.width<=(frame.size.width-2*margin) ? dims.width : frame.size.width-4*margin);
 		
-        // Set label properties
-        label.font = self.labelFont;
-        label.adjustsFontSizeToFitWidth = NO;
-        label.textAlignment = UITextAlignmentCenter;
-        label.opaque = NO;
-        label.backgroundColor = [UIColor clearColor];
-        label.textColor = [UIColor whiteColor];
-        label.text = self.labelText;
+		// Set label properties
+		label.font = self.labelFont;
+		label.adjustsFontSizeToFitWidth = NO;
+		label.textAlignment = UITextAlignmentCenter;
+		label.opaque = NO;
+		label.backgroundColor = [UIColor clearColor];
+		label.textColor = [UIColor whiteColor];
+		label.text = self.labelText;
 		
-        // Update HUD size
-        if (self.width < (lWidth + 2 * margin)) {
-            self.width = lWidth + 2 * margin;
-        }
-        self.height = self.height + lHeight + PADDING;
+		// Update HUD size
+		if (self.width < (lWidth + 2 * margin)) {
+			self.width = lWidth + 2 * margin;
+		}
+		self.height = self.height + lHeight + PADDING;
 		
         // Move indicator to make room for the label
         indFrame.origin.y -= (floorf(lHeight / 2 + PADDING / 2));
         indicator.frame = indFrame;
 		
-        // Set the label position and dimensions
-        CGRect lFrame = CGRectMake(floorf((frame.size.width - lWidth) / 2) + xOffset,
-                                   floorf(indFrame.origin.y + indFrame.size.height + PADDING),
-                                   lWidth, lHeight);
-        label.frame = lFrame;
+		// Set the label position and dimensions
+		lFrame = CGRectMake(floorf((frame.size.width - lWidth) / 2) + xOffset,
+							floorf(indFrame.origin.y + indFrame.size.height + PADDING),
+							lWidth, lHeight);
+		label.frame = lFrame;
 		
-        [self addSubview:label];
-		
-        // Add details label delatils text was set
-        if (nil != self.detailsLabelText) {
-            // Get size of label text
-            dims = [self.detailsLabelText sizeWithFont:self.detailsLabelFont];
-			
-            // Compute label dimensions based on font metrics if size is larger than max then clip the label width
-            lHeight = dims.height;
-            if (dims.width <= (frame.size.width - 2 * margin)) {
-                lWidth = dims.width;
-            }
-            else {
-                lWidth = frame.size.width - 4 * margin;
-            }
-			
-            // Set label properties
-            detailsLabel.font = self.detailsLabelFont;
-            detailsLabel.adjustsFontSizeToFitWidth = NO;
-            detailsLabel.textAlignment = UITextAlignmentCenter;
-            detailsLabel.opaque = NO;
-            detailsLabel.backgroundColor = [UIColor clearColor];
-            detailsLabel.textColor = [UIColor whiteColor];
-            detailsLabel.text = self.detailsLabelText;
-			
-            // Update HUD size
-            if (self.width < lWidth) {
-                self.width = lWidth + 2 * margin;
-            }
-            self.height = self.height + lHeight + PADDING;
-			
-            // Move indicator to make room for the new label
-            indFrame.origin.y -= (floorf(lHeight / 2 + PADDING / 2));
-            indicator.frame = indFrame;
-			
-            // Move first label to make room for the new label
-            lFrame.origin.y -= (floorf(lHeight / 2 + PADDING / 2));
-            label.frame = lFrame;
-			
-            // Set label position and dimensions
-            CGRect lFrameD = CGRectMake(floorf((frame.size.width - lWidth) / 2) + xOffset,
-                                        lFrame.origin.y + lFrame.size.height + PADDING, lWidth, lHeight);
-            detailsLabel.frame = lFrameD;
-			
-            [self addSubview:detailsLabel];
-        }
-    }
+		if (!label.superview)
+			[self addSubview:label];
+	} else if (label.superview)
+		[label removeFromSuperview];
 	
-	if (self.width < minSize.width) {
-		self.width = minSize.width;
-	} 
-	if (self.height < minSize.height) {
-		self.height = minSize.height;
+	// Add details label delatils text was set
+	if (self.detailsLabelText)
+	{
+		// Get size of label text
+		CGSize dims=[self.detailsLabelText sizeWithFont:self.detailsLabelFont];
+		
+		// Compute label dimensions based on font metrics if size is larger than max then clip the label width
+		float lHeight=dims.height;
+		float lWidth=(dims.width<=(frame.size.width-2*margin) ? dims.width : frame.size.width-4*margin);
+		
+		// Set label properties
+		detailsLabel.font = self.detailsLabelFont;
+		detailsLabel.adjustsFontSizeToFitWidth = NO;
+		detailsLabel.textAlignment = UITextAlignmentCenter;
+		detailsLabel.opaque = NO;
+		detailsLabel.backgroundColor = [UIColor clearColor];
+		detailsLabel.textColor = [UIColor whiteColor];
+		detailsLabel.text = self.detailsLabelText;
+		
+		// Update HUD size
+		if (self.width < lWidth) {
+			self.width = lWidth + 2 * margin;
+		}
+		self.height = self.height + lHeight + PADDING;
+		
+		// Move indicator to make room for the new label
+		indFrame.origin.y -= (floorf(lHeight / 2 + PADDING / 2));
+		indicator.frame = indFrame;
+		
+		// Move first label to make room for the new label
+		lFrame.origin.y -= (floorf(lHeight / 2 + PADDING / 2));
+		label.frame = lFrame; 
+		
+		// Set label position and dimensions
+		CGRect lFrameD = CGRectMake(floorf((frame.size.width - lWidth) / 2) + xOffset,
+									lFrame.origin.y + lFrame.size.height + PADDING, lWidth, lHeight);
+		detailsLabel.frame = lFrameD;
+		
+		if (!detailsLabel.superview)
+			[self addSubview:detailsLabel];
+	} else if (detailsLabel.superview)
+		[detailsLabel removeFromSuperview];
+	
+	if (additionalView && !additionalView.hidden)
+	{
+		CGSize dims=additionalView.bounds.size;
+		
+		float lHeight=dims.height;
+		float lWidth=dims.width;
+		
+		if (self.width<lWidth)
+			self.width=lWidth+2*margin;
+		self.height=self.height+lHeight+PADDING;
+		
+		float h=floorf(lHeight/2+PADDING/2);
+		indFrame.origin.y-=h;
+		indicator.frame=indFrame;
+		if (label.superview)
+		{
+			CGRect rect=label.frame;
+			rect.origin.y-=h;
+			label.frame=rect;
+		}
+		CGRect rect=(detailsLabelText ? detailsLabel.frame : (label.superview ? label.frame : indicator.frame));
+		CGRect lFrameD=CGRectMake(floor((frame.size.width-lWidth)/2)+xOffset,rect.origin.y+rect.size.height+PADDING,lWidth,lHeight);
+		additionalView.frame=lFrameD;
+		
+		if (!additionalView.superview)
+			[self addSubview:additionalView];
 	}
+	
+	if (self.width<minSize.width)
+		self.width=minSize.width;
+	if (self.height<minSize.height)
+		self.height=minSize.height;
 }
 
 #pragma mark -
@@ -535,6 +564,14 @@
     [self hide:useAnimation];
 }
 
+
+- (void)cancel
+{
+	if(delegate && [delegate conformsToProtocol:@protocol(MBProgressHUDDelegate)] && [delegate respondsToSelector:@selector(hudDidCancel:)])
+		[delegate performSelector:@selector(hudDidCancel:) withObject:self];
+}
+
+
 #pragma mark -
 #pragma mark Fade in and Fade out
 
@@ -586,7 +623,7 @@
 - (void)drawRect:(CGRect)rect {
 	
     CGContextRef context = UIGraphicsGetCurrentContext();
-
+	
     if (dimBackground) {
         //Gradient colours
         size_t gradLocationsNum = 2;
@@ -661,7 +698,7 @@
 	}
 	
 	rotationTransform = CGAffineTransformMakeRotation(RADIANS(degrees));
-
+	
 	if (animated) {
 		[UIView beginAnimations:nil context:nil];
 	}
