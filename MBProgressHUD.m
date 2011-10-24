@@ -67,6 +67,7 @@
 
 @synthesize showStarted;
 
+@synthesize allowsCancelation;
 @synthesize additionalView;
 
 
@@ -123,6 +124,14 @@
 
 - (NSString *)detailsLabelText {
 	return detailsLabelText;
+}
+
+
+- (void)setAllowsCancelation:(BOOL)aAllowsCancelation
+{
+	allowsCancelation=aAllowsCancelation;
+	[self setNeedsLayout];
+	[self setNeedsDisplay];
 }
 
 
@@ -300,8 +309,10 @@
 	[showStarted release];
 	[customView release];
 	
+	[cancelButton release];
+
 	self.additionalView=nil;
-	
+
     [super dealloc];
 }
 
@@ -434,6 +445,23 @@
 		if (!additionalView.superview)
 			[self addSubview:additionalView];
 	}
+
+	if (self.allowsCancelation)
+	{
+		if (!cancelButton)
+		{
+			cancelButton=[UIButton buttonWithType:UIButtonTypeCustom];
+			[cancelButton setImage:[UIImage imageNamed:@"MBProgressHUD.CloseButton.png"] forState:UIControlStateNormal];
+			[cancelButton addTarget:self action:@selector(cancel) forControlEvents:UIControlEventTouchUpInside];
+		}
+		cancelButton.frame=CGRectMake(((self.bounds.size.width+self.width)/2)+self.xOffset-12,((self.bounds.size.height-self.height)/2)+self.yOffset-12,29,29);
+		if (![cancelButton superview])
+			[self addSubview:cancelButton];
+	} else if (cancelButton)
+	{
+		[cancelButton removeFromSuperview];
+		cancelButton=nil;
+	}
 	
 	if (self.width<minSize.width)
 		self.width=minSize.width;
@@ -565,6 +593,13 @@
 }
 
 
+- (void)cancel
+{
+	if(delegate && [delegate conformsToProtocol:@protocol(MBProgressHUDDelegate)] && [delegate respondsToSelector:@selector(hudDidCancel:)])
+		[delegate performSelector:@selector(hudDidCancel:) withObject:self];
+}
+
+
 #pragma mark -
 #pragma mark Fade in and Fade out
 
@@ -616,7 +651,7 @@
 - (void)drawRect:(CGRect)rect {
 	
     CGContextRef context = UIGraphicsGetCurrentContext();
-	
+
     if (dimBackground) {
         //Gradient colours
         size_t gradLocationsNum = 2;
@@ -691,7 +726,7 @@
 	}
 	
 	rotationTransform = CGAffineTransformMakeRotation(RADIANS(degrees));
-	
+
 	if (animated) {
 		[UIView beginAnimations:nil context:nil];
 	}

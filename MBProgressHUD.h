@@ -118,6 +118,8 @@ typedef enum {
 	
 	CGAffineTransform rotationTransform;
 	
+	UIButton *cancelButton;
+	
 	UIView *additionalView;
 }
 
@@ -309,6 +311,8 @@ typedef enum {
  * animations while disappearing.
  */
 - (void)hide:(BOOL)animated;
+
+@property (assign) BOOL allowsCancelation;
 
 @property (retain) UIView *additionalView;
 
